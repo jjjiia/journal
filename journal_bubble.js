@@ -100,7 +100,7 @@ function drawMap(data){
         //        padding: 10
         //});
         //
-        animateMap(data,0,map,coordsList,features,censusFeatures)
+      //  animateMap(data,0,map,coordsList,features,censusFeatures)
     })
 }
 
@@ -163,7 +163,7 @@ function animateMap(data,count,map,coordsList,features,censusFeatures){
            // drawBubbles(censusEntry)            
             //drawParticles(censusEntry)
             
-            animateMap(data,count,map,coordsList,features,censusFeatures)
+           // animateMap(data,count,map,coordsList,features,censusFeatures)
             
         });
      //  console.log([count,data[count],features.length])
@@ -225,12 +225,73 @@ function setupChart(censusEntry){
     
     for(var t in tables){
         var tableData = groupedData[t]
-        drawChart(tableData,t)
+       // drawChart(tableData,t)
+        drawBubbles(tableData)
         
         
     }  
 }
-
+function drawBubbles(data){
+    var width = $("#charts").innerWidth();
+    var height = 400;
+    var center = { x: width / 2, y: height / 2 };
+    var forceStrength = .1;
+    var svg = null;
+    var bubbles = null;
+    var nodes = [];
+    function charge(d) {return -Math.pow(d.radius, 2.1) * forceStrength;}
+    var simulation = d3.forceSimulation()
+        .velocityDecay(0.2)
+        .force('x', d3.forceX().strength(forceStrength).x(center.x))
+        .force('y', d3.forceY().strength(forceStrength).y(center.y))
+        .force('charge', d3.forceManyBody().strength(charge))
+        .on('tick', ticked);
+    simulation.stop();
+    
+    function ticked() {
+        bubbles
+          .attr('cx', function (d) { return d.x; })
+          .attr('cy', function (d) { return d.y; });
+      }
+      
+      nodes = createNodes(data);
+      svg = d3.select("#charts")
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+      bubbles = svg.selectAll('.bubble')
+        .data(nodes, function (d) { return d.id; });
+      var bubblesE = bubbles.enter().append('circle')
+        .classed('bubble', true)
+        .attr('r', 0)
+        .attr('fill', function (d,i) { return colors[i%(colors.length-1)]; })
+        .attr('stroke', function (d,i) { return colors[i%(colors.length-1)]; })
+        .attr('stroke-width', 2)
+        bubbles = bubbles.merge(bubblesE);
+      bubbles.transition()
+        .duration(2000)
+        .attr('r', function (d) { return d.radius; });
+      simulation.nodes(nodes);
+      simulation.alpha(1).restart();
+}
+function createNodes(fileData) {
+    var range = d3.extent(Object.values(fileData));
+    var radiusScale = d3.scalePow()
+    //.exponent(1)//0.5)
+      .range([2, 85])
+      .domain([0, range[1]]);
+      var myNodes = Object.keys(fileData).map(function (d) {
+     //     console.log(d)
+      console.log(fileData[d])
+      return {
+        id: d,
+        radius: radiusScale(fileData[d]),
+        x: Math.random() * 900,
+        y: Math.random() * 800
+      };
+    });
+    return myNodes;
+}
 
 function drawChart(data,table){
     var bar = 20//(height-margin*#)/(Object.keys(data).length)
